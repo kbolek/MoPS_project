@@ -6,13 +6,20 @@ import sys
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.figure
 import json
-
+import math
 
 
 class Ui_MainWindow(object):
     def __init__(self):
-        with open('settings.json') as file:
-            self.parameters = json.load(file)
+        self.dx = None
+        self.L = None
+        self.Mt = None
+        self.Tt = None
+        self.Tw = None
+        self.x = None
+        self.Nx = None
+        with open('settings.json') as self.file:
+            self.parameters = json.load(self.file)
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("2D simulation of the flood wave")
@@ -30,7 +37,7 @@ class Ui_MainWindow(object):
         self.frame_2.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_2.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_2.setObjectName("frame_2")
-        #create a horizontal layout
+        # create a horizontal layout
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.frame_2)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         ##Canvas
@@ -39,16 +46,16 @@ class Ui_MainWindow(object):
         ##End of canvas
         ##Add Canvas
         self.horizontalLayout_4.addWidget(self.canvas)
-        #end of horizontal layout
+        # end of horizontal layout
         self.frame_3 = QtWidgets.QFrame(self.frame)
         self.frame_3.setGeometry(QtCore.QRect(0, 630, 761, 71))
         self.frame_3.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_3.setObjectName("frame_3")
-        self.defaultsButton = QtWidgets.QPushButton(self.frame_3, clicked = lambda:self.default())
+        self.defaultsButton = QtWidgets.QPushButton(self.frame_3, clicked=lambda: self.default())
         self.defaultsButton.setGeometry(QtCore.QRect(544, 20, 165, 40))
         self.defaultsButton.setObjectName("defaultsButton")
-        self.startButton = QtWidgets.QPushButton(self.frame_3, clicked = lambda:self.plotOnCanvas())
+        self.startButton = QtWidgets.QPushButton(self.frame_3, clicked=lambda: self.plotOnCanvas())
         self.startButton.setEnabled(True)
         self.startButton.setGeometry(QtCore.QRect(30, 20, 165, 40))
         self.startButton.setObjectName("startButton")
@@ -163,10 +170,10 @@ class Ui_MainWindow(object):
         self.label_16 = QtWidgets.QLabel(self.frame)
         self.label_16.setGeometry(QtCore.QRect(500, 490, 101, 31))
         self.label_16.setObjectName("label_16")
-        self.comboBox = QtWidgets.QComboBox(self.frame)
-        self.comboBox.setGeometry(QtCore.QRect(600, 570, 121, 31))
-        self.comboBox.setObjectName("comboBox")
-        self.comboBox.addItem("")
+        # self.comboBox = QtWidgets.QComboBox(self.frame)
+        # self.comboBox.setGeometry(QtCore.QRect(600, 570, 121, 31))
+        # self.comboBox.setObjectName("comboBox")
+        # self.comboBox.addItem("")
         self.label_17 = QtWidgets.QLabel(self.frame)
         self.label_17.setGeometry(QtCore.QRect(500, 570, 91, 31))
         self.label_17.setScaledContents(False)
@@ -184,6 +191,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        self.file.close()
 
     def default(self):
         self.channelText.clear()
@@ -200,7 +208,7 @@ class Ui_MainWindow(object):
         self.ABoundaryText.clear()
         self.QBoundaryText.clear()
         self.RiverDischargeText.clear()
-        self.comboBox.clear()
+        # self.comboBox.clear()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -223,25 +231,48 @@ class Ui_MainWindow(object):
         self.label_14.setText(_translate("MainWindow", "Initial river discharge:"))
         self.label_15.setText(_translate("MainWindow", "Q boundary value:"))
         self.label_16.setText(_translate("MainWindow", "A boundary value:"))
-        self.comboBox.setItemText(0, _translate("MainWindow", "sin"))
-        self.label_17.setText(_translate("MainWindow", "Flood function:"))
+        # self.comboBox.setItemText(0, _translate("MainWindow", "sin"))
+        # self.label_17.setText(_translate("MainWindow", "Flood function:"))
         self.plotOnCanvas()
+
+    def checkIfValueIsChanged(self, parameter, parameter_key):
+        if parameter and parameter != self.parameters[parameter_key]:
+            return int(parameter)
+        return self.parameters[parameter_key]
+
+    def calculateVariables(self):
+        # number of cross sections:
+        self.L = self.checkIfValueIsChanged(self.channelText.toPlainText(), 'L')
+        self.dx = self.checkIfValueIsChanged(self.DxText.toPlainText(), 'dx')
+        self.Nx = int(self.L / self.dx) + 1
+        # number of cross section stations
+        self.x = [400 * x for x in range(0, self.Nx - 1)]
+        # maximum time required for the entrance of the flood wave into the channel
+        self.Tw = self.checkIfValueIsChanged(self.WavePeriodText.toPlainText(), 'Tpw') / 2
+        # total time of simulation
+        self.Tt = self.checkIfValueIsChanged(self.TimeBeforeText.toPlainText(), 'Ts') \
+                  + self.Tw \
+                  + self.checkIfValueIsChanged(self.TimeAfterText.toPlainText(), 'Ta')
+        # total number of time steps
+        self.Mt = math.floor(self.Tt * 3600 / self.checkIfValueIsChanged(self.DtText.toPlainText(), 'Dt'))
+        # TODO: calculate the rest of parameters (starting from page 15: Mt to yl2)
 
 
     def plotOnCanvas(self):
         ## clear the canvas
+        self.calculateVariables()
         self.figure.clear()
         ax1 = self.figure.add_subplot(211)
         x1 = [i for i in range(100)]
         y1 = [i ** 0.5 for i in x1]
-        ax1.plot(x1, y1,)
+        ax1.plot(x1, y1, )
 
         ax2 = self.figure.add_subplot(212)
         x2 = [i for i in range(100)]
         y2 = [i for i in x2]
         ax2.plot(x2, y2)
-
         self.canvas.draw()
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
@@ -251,10 +282,3 @@ if __name__ == "__main__":
     ui.setupUi(MainWindow)
     MainWindow.show()
     sys.exit(app.exec_())
-
-
-
-
-
-
-
