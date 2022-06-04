@@ -225,6 +225,7 @@ class Ui_MainWindow(object):
         self.label_16.setText(_translate("MainWindow", "A boundary value:"))
         self.comboBox.setItemText(0, _translate("MainWindow", "sin"))
         self.label_17.setText(_translate("MainWindow", "Flood function:"))
+        self.plotOnCanvas()
 
 
     def plotOnCanvas(self):
