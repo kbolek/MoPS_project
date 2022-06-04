@@ -45,7 +45,7 @@ class Ui_MainWindow(object):
         self.frame_3.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_3.setObjectName("frame_3")
-        self.defaultsButton = QtWidgets.QPushButton(self.frame_3)
+        self.defaultsButton = QtWidgets.QPushButton(self.frame_3, clicked = lambda:self.default())
         self.defaultsButton.setGeometry(QtCore.QRect(544, 20, 165, 40))
         self.defaultsButton.setObjectName("defaultsButton")
         self.startButton = QtWidgets.QPushButton(self.frame_3, clicked = lambda:self.plotOnCanvas())
@@ -185,6 +185,23 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
+    def default(self):
+        self.channelText.clear()
+        self.ChannelWidthText.clear()
+        self.BottomText.clear()
+        self.CoeffText.clear()
+        self.GravityText.clear()
+        self.DxText.clear()
+        self.WaveAmpText.clear()
+        self.DtText.clear()
+        self.WavePeriodText.clear()
+        self.TimeBeforeText.clear()
+        self.TimeAfterText.clear()
+        self.ABoundaryText.clear()
+        self.QBoundaryText.clear()
+        self.RiverDischargeText.clear()
+        self.comboBox.clear()
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "2D simulation of the flood wave"))
@@ -229,6 +246,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
+
     ui.setupUi(MainWindow)
     MainWindow.show()
     sys.exit(app.exec_())
