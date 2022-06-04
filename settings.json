@@ -1,38 +1,17 @@
 {
-  "river_properties" : [
-    {
-      "description": "length of the distance in the channel [m]",
-      "L": 40000
-    },
-    {
-
-      "description": "width of the channel [m]",
-      "B": 40
-    },
-    {
-      "description": "slope of the bottom of the channel [m/m]",
-      "S0": 0.0003
-    },
-    {
-      "description": "manning roughness coefficient [m^(-1/3) s] ",
-      "n": 0.01
-    },
-    {
-      "description": "gravitational acceleration [m/s2] ",
-      "g": 9.81
-    },
-    {
-      "description": "step size[m] ",
-      "dx": 400.0
-    }
-  ],
-
-  "water parameters":  [
-    {
-      "description": "step size[m] ",
-      "dx": 400.0
-    }
-
-  ]
-
+      "L": 40000,
+      "B": 40,
+      "S0": 0.0003,
+      "n": 0.01,
+      "g": 9.81,
+      "dx": 400.0,
+      "nx" : 100,
+      "a" : 6,
+      "Tpw" : 12,
+      "Ts": 20,
+      "Ta": 20,
+      "Dt": 100,
+      "At1": 30,
+      "Qt1": 25,
+      "Q0": 20
 }
