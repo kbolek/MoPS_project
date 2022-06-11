@@ -2,11 +2,13 @@
     and river cross section"""
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from pyqtgraph import PlotWidget, plot
+import pyqtgraph as pg
+from random import randint
 import sys
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib.figure
 import json
 import math
+
 
 
 class Ui_MainWindow(object):
@@ -18,6 +20,9 @@ class Ui_MainWindow(object):
         self.Tw = None
         self.x = None
         self.Nx = None
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(500)
+        self.timer.timeout.connect(self.update_plot_data)
         with open('settings.json') as self.file:
             self.parameters = json.load(self.file)
 
@@ -38,14 +43,30 @@ class Ui_MainWindow(object):
         self.frame_2.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_2.setObjectName("frame_2")
         # create a horizontal layout
+        # Some random data for scatter plot
+        self.x1 = list(range(100))  # 100 time points
+        self.y1 = [randint(0, 100) for _ in range(100)]  # 100 data point
+
+        self.x2 = list(range(100))  # 100 time points
+        self.y2 = [randint(0, 10) for _ in range(100)]  # 100 data point
+
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.frame_2)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        ##Canvas
-        self.figure = matplotlib.figure.Figure()
-        self.canvas = FigureCanvas(self.figure)
-        ##End of canvas
-        ##Add Canvas
-        self.horizontalLayout_4.addWidget(self.canvas)
+        self.graphWidget = pg.GraphicsLayoutWidget()
+        self.graphWidget.setBackground('w')
+
+        #self.view1 = self.graphWidget.addViewBox(0,0)
+        #self.view2 = self.graphWidget.addViewBox(1,0)
+        self.graph_item1 = self.graphWidget.addPlot(row=0, col=0, x=self.x1, y=self.y1, pen=pg.mkPen('k',width=1.5))
+        self.graph_item1.showGrid(x=True, y=True, alpha=0.3)
+        self.graph_item2 = self.graphWidget.addPlot(row=1, col=0, x=self.x2, y=self.y2, pen=pg.mkPen('k',width=1.5))
+        self.graph_item2.showGrid(x=True, y=True, alpha=0.3)
+        self.curve1 = self.graph_item1.plot(pen=pg.mkPen('k', width=1.5))
+        self.curve2 = self.graph_item2.plot(pen=pg.mkPen('k', width=1.5))
+        #self.view1.addItem(self.graph_item1)
+        #self.view2.addItem(self.graph_item2)
+        self.horizontalLayout_4.addWidget(self.graphWidget)
+
         # end of horizontal layout
         self.frame_3 = QtWidgets.QFrame(self.frame)
         self.frame_3.setGeometry(QtCore.QRect(0, 630, 761, 71))
@@ -55,14 +76,14 @@ class Ui_MainWindow(object):
         self.defaultsButton = QtWidgets.QPushButton(self.frame_3, clicked=lambda: self.default())
         self.defaultsButton.setGeometry(QtCore.QRect(544, 20, 165, 40))
         self.defaultsButton.setObjectName("defaultsButton")
-        self.startButton = QtWidgets.QPushButton(self.frame_3, clicked=lambda: self.plotOnCanvas())
+        self.startButton = QtWidgets.QPushButton(self.frame_3, clicked=lambda: self.timer.start())
         self.startButton.setEnabled(True)
         self.startButton.setGeometry(QtCore.QRect(30, 20, 165, 40))
         self.startButton.setObjectName("startButton")
-        self.stopButton = QtWidgets.QPushButton(self.frame_3)
+        self.stopButton = QtWidgets.QPushButton(self.frame_3, clicked = lambda: self.timer.stop())
         self.stopButton.setGeometry(QtCore.QRect(373, 20, 165, 40))
         self.stopButton.setObjectName("stopButton")
-        self.pauseButton = QtWidgets.QPushButton(self.frame_3)
+        self.pauseButton = QtWidgets.QPushButton(self.frame_3, clicked = lambda: self.timer.stop())
         self.pauseButton.setGeometry(QtCore.QRect(201, 20, 166, 40))
         self.pauseButton.setObjectName("pauseButton")
         self.channelText = QtWidgets.QTextEdit(self.frame)
@@ -233,7 +254,7 @@ class Ui_MainWindow(object):
         self.label_16.setText(_translate("MainWindow", "A boundary value:"))
         # self.comboBox.setItemText(0, _translate("MainWindow", "sin"))
         # self.label_17.setText(_translate("MainWindow", "Flood function:"))
-        self.plotOnCanvas()
+        # self.plotOnCanvas()
 
     def checkIfValueIsChanged(self, parameter, parameter_key):
         if parameter and parameter != self.parameters[parameter_key]:
@@ -257,21 +278,21 @@ class Ui_MainWindow(object):
         self.Mt = math.floor(self.Tt * 3600 / self.checkIfValueIsChanged(self.DtText.toPlainText(), 'Dt'))
         # TODO: calculate the rest of parameters (starting from page 15: Mt to yl2)
 
+    def update_plot_data(self):
+        self.x1 = self.x1[1:]  # Remove the first y element.
+        self.x1.append(self.x1[-1] + 1)  # Add a new value 1 higher than the last.
 
-    def plotOnCanvas(self):
-        ## clear the canvas
-        self.calculateVariables()
-        self.figure.clear()
-        ax1 = self.figure.add_subplot(211)
-        x1 = [i for i in range(100)]
-        y1 = [i ** 0.5 for i in x1]
-        ax1.plot(x1, y1, )
+        self.y1 = self.y1[1:]  # Remove the first
+        self.y1.append(randint(0, 100))  # Add a new random value
 
-        ax2 = self.figure.add_subplot(212)
-        x2 = [i for i in range(100)]
-        y2 = [i for i in x2]
-        ax2.plot(x2, y2)
-        self.canvas.draw()
+        self.x2 = self.x2[1:]  # Remove the first y element.
+        self.x2.append(self.x2[-1] + 1)  # Add a new value 1 higher than the last.
+
+        self.y2 = self.y2[1:]  # Remove the first
+        self.y2.append(randint(0, 10))  # Add a new random value
+
+        self.curve1.setData(self.x1, self.y1)
+        self.curve2.setData(self.x2, self.y2)
 
 
 if __name__ == "__main__":
