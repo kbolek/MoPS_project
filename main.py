@@ -8,8 +8,7 @@ from random import randint
 import sys
 import json
 import math
-
-
+import numpy as np
 
 class Ui_MainWindow(object):
     def __init__(self):
@@ -214,6 +213,8 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.file.close()
 
+        self.calculateVariables()
+
     def default(self):
         self.channelText.clear()
         self.ChannelWidthText.clear()
@@ -276,9 +277,87 @@ class Ui_MainWindow(object):
                   + self.checkIfValueIsChanged(self.TimeAfterText.toPlainText(), 'Ta')
         # total number of time steps
         self.Mt = math.floor(self.Tt * 3600 / self.checkIfValueIsChanged(self.DtText.toPlainText(), 'Dt'))
-        # TODO: calculate the rest of parameters (starting from page 15: Mt to yl2)
-
+        self.Qt1 = self.checkIfValueIsChanged(self.QBoundaryText.toPlainText(), 'Qt1')
+        self.Q0 = self.checkIfValueIsChanged(self.RiverDischargeText.toPlainText(), 'Q0')
+        self.At1 = self.checkIfValueIsChanged(self.ABoundaryText.toPlainText(), 'At1')
+        # [seconds] - time step
+        self.Dt = self.checkIfValueIsChanged(self.DtText.toPlainText(), 'Dt')
+        # width of the channel
+        self.B = self.checkIfValueIsChanged(self.ChannelWidthText.toPlainText(), 'B')
+        # [m3/s] discharge of the river
+        self.Q = np.zeros(shape=(self.Nx, self.Mt))
+        # [m2] cross section area
+        self.A = np.zeros(shape=(self.Nx, self.Mt))
+        # depth
+        self.h = np.zeros(shape=(self.Nx, self.Mt))
+        # Initial conditions
+        self.Q[1:self.Nx//2, 1] = self.Qt1
+        self.Q[self.Nx//2:self.Nx, 1] = self.Qt1
+        self.A[1:self.Nx//2, 1] = self.At1
+        self.A[self.Nx//2:self.Nx,1] = self.At1
+        # water levels
+        self.h[:, 1] = self.A[:, 1]/self.B
+        # time step 
+        self.T = np.arange(0, (self.Mt)*self.Dt, self.Dt, dtype=int)
+        # [hours] time required for steady state to be established
+        self.Ts = self.checkIfValueIsChanged(self.TimeBeforeText.toPlainText(), 'Ts')
+        # [m/s2] - gravitational acceleration
+        self.g = self.checkIfValueIsChanged(self.GravityText.toPlainText(), 'g')
+        # [m^(-1/3) s] - Manning roughness coefficient
+        self.n = self.checkIfValueIsChanged(self.CoeffText.toPlainText(), 'n')
+        # [m/m] - slope of the bottom of the channel
+        self.S0 = self.checkIfValueIsChanged(self.BottomText.toPlainText(), 'S0')
+        # water amplitude
+        self.a = self.checkIfValueIsChanged(self.WaveAmpText.toPlainText(), 'a')
+        # [hours] flood wave period
+        self.Tpw = self.checkIfValueIsChanged(self.WavePeriodText.toPlainText(), 'Tpw')
+        
     def update_plot_data(self):
+        # for all time steps
+        for t in range(1, self.Mt-1):
+            # for all computational nodes
+            for i in range(1, self.Nx):
+                # we are at the begging of the analyzed distance when initial conditions applay
+                if i==1:
+                    # first 30 hours steady state established
+                    if (self.T[t] >= 0) and (self.T[t] < self.Ts * 3600):
+                        # initial condition
+                        self.Q[i, t+1] = self.Q0
+                        # initial condition based on the row above
+                        self.A[i, t+1] = self.A[i, t] - self.Dt/self.dx*(self.Q[i+1, t] - self.Q[i, t])
+
+                        # the next 30 hours when the flood wave is enetring the channel, another 30 hours
+
+                        # flood wave is entering the channel - upstream boundary condition
+                    elif (self.T[t] >= self.Ts * 3600) and (self.T[t] <= (self.Tw + self.Ts)*3600):
+                        # application of sinus function which represents the wave
+                        self.Q[i, t+1] = self.Q0 * (1.0+self.a*np.sin(2*3.14*self.T[t]/self.Tpw*3600))
+                        self.A[i, t+1] = self.A[i, t] - self.Dt/self.dx*(self.Q[i+1, t] - self.Q[i, t])
+                        # flood wave left the channel
+                    # the steady state is again forced
+                    elif self.T[t] > ((self.Tw + self.Ts)*3600):
+                        # we force initial conditions again
+                        self.Q[i, t+1] = self.Q0
+                        self.A[i, t+1] = self.A[i, t] - self.Dt/self.dx*(self.Q[i+1, t] - self.Q[i, t])
+                    else:
+                        pass
+
+                    # hydraulic radius calculation
+                    # level of level water in the river
+                    R = self.A[i, t+1]/(2.0*self.A[i, t+1]/self.B+self.B)
+                    self.h[i, t+1] = self.A[i, t+1]/self.B
+
+                else:
+                    R = self.A[i, t]/(self.A[i, t]/self.B*2.0+self.B)
+                    alpham = (2.0*self.Q[i,t]/self.A[i,t]) + ((self.g*self.A[i,t]/self.B) - (self.Q[i,t]**2/self.A[i,t]*2))/((self.Q[i,t]/self.A[i,t])*(5.0/3.0-(4.0/3.0)*(R/self.B)))
+                    betam = self.g*self.A[i,t]*((self.Q[i,t]**2)*self.n**2/((self.A[i,t]**2)*R**(4.0/3.0))-self.S0)
+
+                    self.Q[i,t+1] = (self.Q[i,t]+self.Dt/self.dx*alpham*self.Q[i-1,t+1]-betam*self.Dt)/(1.0+alpham*self.Dt/self.dx)
+                    self.A[i,t+1] = self.A[i,t]-self.Dt/self.dx*(self.Q[i,t+1]-self.Q[i-1,t+1])
+                    self.h[i, t+1] = self.A[i,t+1]/self.B
+
+                    R = self.A[i,t+1]/(self.A[i,t+1]/self.B*2.0+self.B)
+
         self.x1 = self.x1[1:]  # Remove the first y element.
         self.x1.append(self.x1[-1] + 1)  # Add a new value 1 higher than the last.
 
@@ -293,7 +372,6 @@ class Ui_MainWindow(object):
 
         self.curve1.setData(self.x1, self.y1)
         self.curve2.setData(self.x2, self.y2)
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
