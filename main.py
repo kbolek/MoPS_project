@@ -73,7 +73,7 @@ class MainApplication(object):
             # for all computational nodes
             for i in range(0, self.Nx):
                 # we are at the begging of the analyzed distance when initial conditions applay
-                if i == 1:
+                if i == 0:
                     # first 30 hours steady state established
                     if (self.T[t] >= 0) and (self.T[t] < self.Ts * 3600):
                         # initial condition
