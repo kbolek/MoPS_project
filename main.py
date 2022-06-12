@@ -4,6 +4,8 @@
 import json
 import math
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("TkAgg")
 import numpy as np
 import time
 
@@ -56,7 +58,7 @@ class MainApplication(object):
         self.A[:, 0] = self.At1
         # water levels
         self.h[:, 0] = self.A[:, 0]/self.B
-        # time step 
+        # time step
         self.T = np.arange(0, (self.Mt)*self.Dt, self.Dt, dtype=int)
         # [m/s2] - gravitational acceleration
         self.g = self.parameters['g']
@@ -68,6 +70,8 @@ class MainApplication(object):
         self.a = self.parameters['a']
 
     def update_plot_data(self):
+        plt.ion()
+        fig, axs = plt.subplots(2)
         #for t in range(1, self.Mt - 1):
         for t in range(0, self.Mt-1):
             # for all computational nodes
@@ -103,10 +107,8 @@ class MainApplication(object):
                     alpham = (2.0 * self.Q[i, t] / self.A[i, t]) + (
                             (self.g * self.A[i, t] / self.B) - (self.Q[i, t] ** 2 / self.A[i, t] ** 2)) / (
                                      (self.Q[i, t] / self.A[i, t]) * (5.0 / 3.0 - (4.0 / 3.0) * (self.R / self.B)))
-                    print(f'alpham: {alpham}')
                     betam = self.g * self.A[i, t] * (
                             (self.Q[i, t] ** 2) * self.n ** 2 / ((self.A[i, t] ** 2) * self.R ** (4.0 / 3.0)) - self.S0)
-                    print(f'betam: {betam}')
                     self.Q[i, t + 1] = (self.Q[i, t] + self.Dt / self.dx * alpham * self.Q[
                         i - 1, t + 1] - betam * self.Dt) / (1.0 + alpham * self.Dt / self.dx)
                     self.A[i, t + 1] = self.A[i, t] - self.Dt / self.dx * (self.Q[i, t + 1] - self.Q[i - 1, t + 1])
@@ -114,22 +116,17 @@ class MainApplication(object):
 
                     self.R = self.A[i, t + 1] / (self.A[i, t + 1] / self.B * 2.0 + self.B)
 
-
-            fig, axs = plt.subplots(2)
             fig.suptitle(f'Time = {self.T[t]/3600} (h)')
-            axs[0].plot(self.x[:],self.h[:, t])
-            axs[1].plot(self.x[:], self.Q[:,t])
-            plt.pause(0.01)
-            time.sleep(0.1)
-            plt.draw()
+            axs[0].cla()
+            axs[1].cla()
+            axs[0].plot(self.x[:], self.h[:, t])
+            axs[1].plot(self.x[:], self.Q[:, t])
 
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+            time.sleep(0.1)
 
 if __name__ == "__main__":
     flood_simulation = MainApplication()
     flood_simulation.calculateVariables()
     flood_simulation.update_plot_data()
-
-
-
-
-
