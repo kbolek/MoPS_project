@@ -52,16 +52,10 @@ class MainApplication(object):
         # depth
         self.h = np.zeros(shape=(self.Nx, self.Mt))
         # Initial conditions
-        self.Q[1:self.Nx//2, 1] = self.Qt1
-        self.Q[self.Nx//2:self.Nx, 1] = self.Qt1
-        self.A[1:self.Nx//2, 1] = self.At1
-        self.A[self.Nx//2:self.Nx,1] = self.At1
+        self.Q[:, 0] = self.Qt1
+        self.A[:, 0] = self.At1
         # water levels
-        self.h[:, 1] = self.A[:, 1]/self.B
-        # default initial conditions
-        self.Q[:, 1] = self.Qt1
-        self.A[:, 1] = self.At1
-        self.h[:,1] = self.A[:,1]/self.B
+        self.h[:, 0] = self.A[:, 0]/self.B
         # time step 
         self.T = np.arange(0, (self.Mt)*self.Dt, self.Dt, dtype=int)
         # [m/s2] - gravitational acceleration
@@ -75,9 +69,9 @@ class MainApplication(object):
 
     def update_plot_data(self):
         #for t in range(1, self.Mt - 1):
-        for t in range(1, self.Mt-1):
+        for t in range(0, self.Mt-1):
             # for all computational nodes
-            for i in range(1, self.Nx):
+            for i in range(0, self.Nx):
                 # we are at the begging of the analyzed distance when initial conditions applay
                 if i == 1:
                     # first 30 hours steady state established
@@ -109,9 +103,10 @@ class MainApplication(object):
                     alpham = (2.0 * self.Q[i, t] / self.A[i, t]) + (
                             (self.g * self.A[i, t] / self.B) - (self.Q[i, t] ** 2 / self.A[i, t] ** 2)) / (
                                      (self.Q[i, t] / self.A[i, t]) * (5.0 / 3.0 - (4.0 / 3.0) * (self.R / self.B)))
+                    print(f'alpham: {alpham}')
                     betam = self.g * self.A[i, t] * (
                             (self.Q[i, t] ** 2) * self.n ** 2 / ((self.A[i, t] ** 2) * self.R ** (4.0 / 3.0)) - self.S0)
-
+                    print(f'betam: {betam}')
                     self.Q[i, t + 1] = (self.Q[i, t] + self.Dt / self.dx * alpham * self.Q[
                         i - 1, t + 1] - betam * self.Dt) / (1.0 + alpham * self.Dt / self.dx)
                     self.A[i, t + 1] = self.A[i, t] - self.Dt / self.dx * (self.Q[i, t + 1] - self.Q[i - 1, t + 1])
