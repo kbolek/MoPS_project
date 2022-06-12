@@ -26,11 +26,16 @@ class MainApplication(object):
         self.dx = self.parameters['dx']
         self.Nx = int(self.L / self.dx) + 1
         # number of cross section stations
-        self.x = [400 * x for x in range(0, self.Nx)]
+        #self.x = [400 * x for x in range(0, self.Nx)]
+        self.x = np.arange(0, (self.Nx)*self.dx, self.dx, dtype=int)
+        # [hours] flood wave period
+        self.Tpw = self.parameters['Tpw']
         # maximum time required for the entrance of the flood wave into the channel
-        self.Tw = self.parameters['Tpw'] / 2
+        self.Tw = self.Tpw / 2
+        # [hours] time required for steady state to be established
+        self.Ts = self.parameters['Ts']
         # total time of simulation
-        self.Tt = self.parameters['Ts'] + self.Tw + self.parameters['Ta']
+        self.Tt = self.Ts + self.Tw + self.parameters['Ta']
         # total number of time steps
         self.Mt = math.floor(self.Tt * 3600 / self.parameters['Dt'])
         self.Qt1 = self.parameters['Qt1']
@@ -53,10 +58,12 @@ class MainApplication(object):
         self.A[self.Nx//2:self.Nx,1] = self.At1
         # water levels
         self.h[:, 1] = self.A[:, 1]/self.B
+        # default initial conditions
+        self.Q[:, 1] = self.Qt1
+        self.A[:, 1] = self.At1
+        self.h[:,1] = self.A[:,1]/self.B
         # time step 
         self.T = np.arange(0, (self.Mt)*self.Dt, self.Dt, dtype=int)
-        # [hours] time required for steady state to be established
-        self.Ts = self.parameters['Ts']
         # [m/s2] - gravitational acceleration
         self.g = self.parameters['g']
         # [m^(-1/3) s] - Manning roughness coefficient
@@ -65,12 +72,10 @@ class MainApplication(object):
         self.S0 = self.parameters['S0']
         # water amplitude
         self.a = self.parameters['a']
-        # [hours] flood wave period
-        self.Tpw = self.parameters['Tpw']
 
     def update_plot_data(self):
         #for t in range(1, self.Mt - 1):
-        for t in range(1, 100):
+        for t in range(1, self.Mt-1):
             # for all computational nodes
             for i in range(1, self.Nx):
                 # we are at the begging of the analyzed distance when initial conditions applay
@@ -102,7 +107,7 @@ class MainApplication(object):
                 else:
                     self.R = self.A[i, t] / (self.A[i, t] / self.B * 2.0 + self.B)
                     alpham = (2.0 * self.Q[i, t] / self.A[i, t]) + (
-                            (self.g * self.A[i, t] / self.B) - (self.Q[i, t] ** 2 / self.A[i, t] * 2)) / (
+                            (self.g * self.A[i, t] / self.B) - (self.Q[i, t] ** 2 / self.A[i, t] ** 2)) / (
                                      (self.Q[i, t] / self.A[i, t]) * (5.0 / 3.0 - (4.0 / 3.0) * (self.R / self.B)))
                     betam = self.g * self.A[i, t] * (
                             (self.Q[i, t] ** 2) * self.n ** 2 / ((self.A[i, t] ** 2) * self.R ** (4.0 / 3.0)) - self.S0)
