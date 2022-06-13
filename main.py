@@ -109,14 +109,16 @@ class MainApplication(object):
 
                     self.R = self.A[i, t + 1] / (self.A[i, t + 1] / self.B * 2.0 + self.B)
 
-            fig.suptitle(f'Time = {self.T[t]/3600} (h)')
+            fig.suptitle(f'Time = {self.T[t]/3600:.2f} (h)')
             axs[0].cla()
             axs[1].cla()
             axs[0].plot(self.x[:], self.h[:, t])
             axs[0].set(xlabel='x [m]', ylabel='h [m]')
+            axs[0].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
             axs[1].plot(self.x[:], self.Q[:, t])
             axs[1].set(xlabel='x [m]', ylabel='Q [m^3\s]')
-
+            axs[1].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
+            fig.subplots_adjust(hspace=0.4)
             fig.canvas.draw()
             fig.canvas.flush_events()
             time.sleep(0.1)
