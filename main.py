@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use("TkAgg")
 import numpy as np
 import time
+from scipy.special import logsumexp
 
 class MainApplication(object):
     def __init__(self):
@@ -28,7 +29,6 @@ class MainApplication(object):
         self.dx = self.parameters['dx']
         self.Nx = int(self.L / self.dx) + 1
         # number of cross section stations
-        #self.x = [400 * x for x in range(0, self.Nx)]
         self.x = np.arange(0, (self.Nx)*self.dx, self.dx, dtype=int)
         # [hours] flood wave period
         self.Tpw = self.parameters['Tpw']
@@ -72,33 +72,26 @@ class MainApplication(object):
     def update_plot_data(self):
         plt.ion()
         fig, axs = plt.subplots(2)
-        #for t in range(1, self.Mt - 1):
         for t in range(0, self.Mt-1):
-            # for all computational nodes
             for i in range(0, self.Nx):
-                # we are at the begging of the analyzed distance when initial conditions applay
                 if i == 0:
-                    # first 30 hours steady state established
+                    # FIRST TIME PERIOD:  the river flows without flood => the system stabilizes itself
                     if (self.T[t] >= 0) and (self.T[t] < self.Ts * 3600):
-                        # initial condition
                         self.Q[i, t + 1] = self.Q0
                         # initial condition based on the row above
                         self.A[i, t + 1] = self.A[i, t] - self.Dt / self.dx * (self.Q[i + 1, t] - self.Q[i, t])
-                        # the next 30 hours when the flood wave is enetring the channel, another 30 hours
-                        # flood wave is entering the channel - upstream boundary condition
+
+                        # SECOND TIME PERIOD: flood wave is entering the channel - upstream boundary condition
                     elif (self.T[t] >= self.Ts * 3600) and (self.T[t] <= (self.Tw + self.Ts) * 3600):
                         # application of sinus function which represents the wave
-                        self.Q[i, t + 1] = self.Q0 * (1.0 + self.a * np.sin(2 * 3.14 * self.T[t] / self.Tpw * 3600))
+                        self.Q[i, t + 1] = self.Q0 * (2.0 + self.a * np.sin(2 * np.pi * self.T[t] / self.Tpw * 3600))
                         self.A[i, t + 1] = self.A[i, t] - self.Dt / self.dx * (self.Q[i + 1, t] - self.Q[i, t])
-                        # flood wave left the channel
-                    # the steady state is again forced
+
+                        # THRID PERIOD: flood wave left the channel
                     elif self.T[t] > ((self.Tw + self.Ts) * 3600):
-                        # we force initial conditions again
                         self.Q[i, t + 1] = self.Q0
                         self.A[i, t + 1] = self.A[i, t] - self.Dt / self.dx * (self.Q[i + 1, t] - self.Q[i, t])
 
-                    # hydraulic radius calculation
-                    # level of level water in the river
                     self.R = self.A[i, t + 1] / (2.0 * self.A[i, t + 1] / self.B + self.B)
                     self.h[i, t + 1] = self.A[i, t + 1] / self.B
 
@@ -120,7 +113,9 @@ class MainApplication(object):
             axs[0].cla()
             axs[1].cla()
             axs[0].plot(self.x[:], self.h[:, t])
+            axs[0].set(xlabel='x [m]', ylabel='h [m]')
             axs[1].plot(self.x[:], self.Q[:, t])
+            axs[1].set(xlabel='x [m]', ylabel='Q [m^3\s]')
 
             fig.canvas.draw()
             fig.canvas.flush_events()
